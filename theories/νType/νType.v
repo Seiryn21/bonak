@@ -1435,6 +1435,374 @@ CoInductive νDgnTypeFrom n' (X: (νTypeAt n'.+1).(prefix)) (M: νTypeFrom n'.+1
 
 Definition νDgnTypes (X: νTypes) := νDgnTypeFrom 0 (tt; X.(this)) X.(next) tt.
 
+Class mkReflBis T := intro_mkreflbis : T -> Type@{m'}.
+
+Class DgnBisBlockPrev {n'} (C: νType n'.+1)
+  {reflPrefix: mkReflBis C.(prefix)} := {
+  reflFrameBelow' p q {Hpq : p.+2 <= q.+2} {Hq : q.+2 <= n'.+1} {D} {R: mk reflPrefix D}
+    (d : C.(FramePrev).(frame'') p D):
+    C.(FramePrev).(frame') p D;
+
+  reflFrameAbove' p q {Hqp : q.+2 <= p.+2} {Hp: p.+2 <= n'.+1} {D} {R: mk reflPrefix D}
+    {d : C.(FramePrev).(frame'') p D}
+    (c : C.(PaintingPrev).(painting'') d) :
+    C.(FramePrev).(frame') p.+1 D;
+
+  reflPaintingBelow' p q {Hpq : p.+2 <= q.+2} {Hq : q.+2 <= n'.+1} {D} {R : mk reflPrefix D}
+    {d : C.(FramePrev).(frame'') p D}
+    (c : C.(PaintingPrev).(painting'') d) :
+    C.(PaintingPrev).(painting') (reflFrameBelow' p q d);
+
+  reflPaintingAbove' p q {Hqp : q.+2 <= p.+2} {Hp : p.+2 <= n'.+1} {D} {R : mk reflPrefix D}
+    {d : C.(FramePrev).(frame'') p D}
+    (c : C.(PaintingPrev).(painting'') d) :
+    C.(PaintingPrev).(painting') (reflFrameAbove' p q c);  
+}.
+
+Class DgnBisFrameBelowBlock {n'} (C: νType n'.+1) {reflPrefix: mkReflBis C.(prefix)} p
+  (ReflPrev: DgnBisBlockPrev C) := {
+
+  reflFrameBelow q {Hpq : p.+1 <= q.+1} {Hq : q.+1 <= n'.+1} {D} {R: mk reflPrefix D}
+    (d : C.(FramePrev).(frame') p D):
+    C.(Frame).(frame p) D;
+
+  eqRestrReflFrameBelowQ q {ε} {Hpq : p.+1 <= q.+1} {Hq : q.+1 <= n'.+1} 
+    {D} {R: mk reflPrefix D}
+    {d: C.(FramePrev).(frame') p D}:
+    C.(Frame).(restrFrame) q ε (reflFrameBelow q d) = d;
+
+  eqRestrReflFrameBelowInf q r {ε} {Hpr : p.+2 <= r.+2} {Hrq : r.+2 <= q.+2} {Hr : q.+2 <= n'.+1} 
+    {D} {R: mk reflPrefix D}
+    {d: C.(FramePrev).(frame') p D} :
+    C.(Frame).(restrFrame) r ε (reflFrameBelow q.+1 d) =
+    ReflPrev .(reflFrameBelow') p q 
+      (C .(FramePrev) .(restrFrame') p r ε d);
+
+  eqRestrReflFrameBelowSup q r {ε} {Hpq : p.+2 <= q.+2} {Hqr : q.+2 <= r.+2} {Hr : r.+2 <= n'.+1} 
+    {D} {R: mk reflPrefix D}
+    {d: C.(FramePrev).(frame') p D} :
+    C.(Frame).(restrFrame) r.+1 ε (reflFrameBelow q d) =
+    ReflPrev .(reflFrameBelow') p q 
+      (C .(FramePrev) .(restrFrame') p r ε d);
+}.
+
+Class DgnBisFrameAboveBlock {n'} (C: νType n'.+1) {reflPrefix: mkReflBis C.(prefix)} p
+  (ReflPrev: DgnBisBlockPrev C) := {
+  
+  reflFrameAbove q {Hqp : q.+1 <= p.+1} {Hp: p.+1 <= n'.+1} {D} {R: mk reflPrefix D}
+    {d : C.(FramePrev).(frame') p D}
+    (c : C.(PaintingPrev).(painting') d) :
+    C.(Frame).(frame p.+1) D;
+
+  eqRestrReflFrameAboveSup q r {ε} {Hpq : q.+2 <= p.+2} {Hqr : p.+2 <= r.+2} {Hr : r.+2 <= n'.+1} 
+    {D} {R: mk reflPrefix D}
+    {d: C.(FramePrev).(frame') p D}
+    {c : C.(PaintingPrev).(painting') d} :
+    C.(Frame).(restrFrame) r.+1 ε (reflFrameAbove q c) =
+    ReflPrev .(reflFrameAbove') p q
+      (C .(PaintingPrev) .(restrPainting') p r ε c);
+}.
+
+Class HasReflBis {n'} {C: νType n'.+1} {reflPrefix: mkReflBis C.(prefix)}
+  {DgnFramePrev: DgnBisBlockPrev C}
+  {DgnFrameAbove : DgnBisFrameAboveBlock C n' DgnFramePrev} {D}
+  {R: mk reflPrefix D} (E: _ -> HSet) :=
+  hasReflBis: forall {d: C.(FramePrev).(frame') n' D}
+    (c: C.(PaintingPrev).(painting') d)
+    p {Hp : p.+1 <= n'.+1} ,
+    E (DgnFrameAbove.(reflFrameAbove) p c).
+
+Class DgnBisPaintingAboveBlock {n'} (C: νType n'.+1) {reflPrefix: mkReflBis C.(prefix)} p
+  {ReflPrev : DgnBisBlockPrev C}
+  (DgnBisFrameAbove : forall {p}, DgnBisFrameAboveBlock C p ReflPrev) := {
+  reflPaintingAbove q {Hqp : q.+1 <= p.+1} {Hp : p.+1 <= n'.+1} {D E}
+    {R : mk reflPrefix D} {L : HasReflBis E} 
+    {d : C.(FramePrev).(frame') p D}
+    (c : C.(PaintingPrev).(painting') d) :
+    C.(Painting).(painting) E (DgnBisFrameAbove .(reflFrameAbove) q c);
+}.
+
+Class DgnBisPaintingBelowBlock {n'} (C: νType n'.+1) {reflPrefix: mkReflBis C.(prefix)} p
+  {ReflPrev : DgnBisBlockPrev C}
+  (DgnBisFrameBelow : forall {p}, DgnBisFrameBelowBlock C p ReflPrev)
+  (DgnBisFrameAbove : forall {p}, DgnBisFrameAboveBlock C p ReflPrev) := {
+  
+  reflPaintingBelow q {Hpq : p.+1 <= q.+1} {Hq : q.+1 <= n'.+1} {D E}
+    {R : mk reflPrefix D} {L : HasReflBis E} 
+    {d : C.(FramePrev).(frame') p D}
+    (c : C.(PaintingPrev).(painting') d) :
+    C.(Painting).(painting) E (DgnBisFrameBelow .(reflFrameBelow) q d);
+    
+  eqRestrReflPaintingBelowQ q {ε : arity} {Hpq : p.+1 <= q.+1} {Hq : q.+1 <= n'.+1} 
+    {D E} {R: mk reflPrefix D} {L : HasReflBis E}
+    {d : C.(FramePrev).(frame') p D}
+    (c : C.(PaintingPrev).(painting') d) :
+    rew [C.(PaintingPrev).(painting')] 
+      DgnBisFrameBelow .(eqRestrReflFrameBelowQ) q in
+      C.(Painting).(restrPainting) p q (ε := ε) (reflPaintingBelow q c) = 
+    c;
+}.
+
+Definition restrictFrame {n'} (C: νType n'.+1) p 
+  {Hq : p.+1 <= n'.+1} {D} (d  : C .(Frame) .(frame p.+1) D) :
+  C .(Frame) .(frame p) D := (rew [id] C .(eqFrameSp) in d).1.
+
+Definition extendPainting {n'} (C: νType n'.+1) p 
+  {Hq : p.+1 <= n'.+1} {D} {E}
+  (d : C .(Frame) .(frame p.+1) D)
+  (c : C.(Painting).(painting) E d) :
+  C.(Painting).(painting) E (restrictFrame C p d).
+Proof.
+  rewrite C .(eqPaintingSp).
+  unshelve esplit.
+  - exact (rew [id] C .(eqFrameSp) in d).2.
+  - rewrite <-sigT_eta. rewrite rew_rew. exact c.
+Defined.
+
+Class DgnBis {n'} (C: νType n'.+1) := {
+  ReflBisPrefix : mkReflBis C.(prefix);
+  DgnBisPrev: DgnBisBlockPrev C;
+  DgnBisFrameBelow {p}: DgnBisFrameBelowBlock C p DgnBisPrev;
+  DgnBisFrameAbove {p}: DgnBisFrameAboveBlock C p DgnBisPrev;
+  DgnBisPaintingBelow {p}: DgnBisPaintingBelowBlock C p (@DgnBisFrameBelow) (@DgnBisFrameAbove);
+  DgnBisPaintingAbove {p}: DgnBisPaintingAboveBlock C p (@DgnBisFrameAbove);
+
+  eqReflFrameAbove0 p {Hp: p.+1 <= n'.+1} {D} {R: mk ReflBisPrefix D}
+    (d : C.(FramePrev).(frame') p D) 
+    (c : C.(PaintingPrev).(painting') d) :
+    DgnBisFrameAbove .(reflFrameAbove) p c =
+    rew <-[id] C .(eqFrameSp) in 
+    (DgnBisFrameBelow .(reflFrameBelow) p d ;
+     fun ε => rew <-[C.(PaintingPrev).(painting')] 
+      DgnBisFrameBelow .(eqRestrReflFrameBelowQ) p in c);
+}.
+
+#[local]
+Instance mkDgnBis0: DgnBis (νTypeAt 1).
+Proof.
+  unshelve esplit.
+  - intro. now exact hunit.
+  - unshelve esplit.
+    * intros. le_contra Hq.
+    * intros. le_contra Hp.
+    * intros. le_contra Hq.
+    * intros. le_contra Hp.
+  - intros; unshelve esplit.
+    * simpl; intros; invert_le Hq; invert_le Hpq. now exact tt.
+    * simpl; intros; invert_le Hq; invert_le Hpq; destruct d. now exact eq_refl.
+    * simpl; intros; le_contra Hr.
+    * simpl; intros; le_contra Hr.
+  - intros; unshelve esplit.
+    * simpl; intros; invert_le Hp; invert_le Hqp; destruct d. 
+      exact (tt ; fun _ => c).
+    * simpl; intros; le_contra Hr.
+  - intros; unshelve esplit.
+    * simpl; intros; invert_le Hq; invert_le Hpq; destruct d.
+      rewrite mkPaintingType_step_computes. unshelve esplit. now trivial.
+      rewrite mkPaintingType_base_computes. now exact (L tt c 0 _).
+    * simpl; intros; invert_le Hq; invert_le Hpq; destruct d.
+      now rewrite mkRestrPainting_base_computes, rew_rew'.
+  - intros; unshelve esplit.
+    * simpl; intros; invert_le Hp; invert_le Hqp. destruct d.
+      rewrite mkPaintingType_base_computes. now exact (L tt c 0 _).
+  - intros. invert_le Hp. destruct d. reflexivity.
+Defined.
+
+#[local] 
+Instance mkDgnPrefix {n'} {C: νType n'.+1} {G : DgnBis C}: 
+  mkReflBis (mkνTypeSn C).(prefix) :=
+  fun D => sigT (fun R : mk G .(ReflBisPrefix) D.1 => 
+  HasReflBis (DgnFrameAbove := G .(DgnBisFrameAbove)) D.2).
+
+#[local]
+Instance mkDgnBisPrev {n'} {C: νType n'.+1} {G : DgnBis C} :
+  DgnBisBlockPrev (mkνTypeSn C).
+Proof.
+  unshelve esplit.
+  + intros. exact (G .(DgnBisFrameBelow) .(reflFrameBelow) (R := R.1) q d).
+  + intros. exact (G .(DgnBisFrameAbove) .(reflFrameAbove) (R := R.1) q c).
+  + intros. exact (G .(DgnBisPaintingBelow) .(reflPaintingBelow) (R := R.1) (L := R.2) q c).
+  + intros. exact (G .(DgnBisPaintingAbove) .(reflPaintingAbove) (R := R.1) (L := R.2) q c).
+Defined.
+
+Definition mkReflLayerBelow {n' p q} {C: νType n'.+1} {G: DgnBis C}
+  {Hpq : p.+2 <= q.+2} {Hq: q.+2 <= n'.+2} {Frame: DgnBisFrameBelowBlock (mkνTypeSn C) p mkDgnBisPrev}
+  {D} {R: mk mkDgnPrefix D} {d: mkFramePrev.(frame') p D} (l: mkLayer' d):
+  mkLayer (Frame .(reflFrameBelow) (D := D) q.+1 d) :=
+  fun ω => rew <-[C.(Painting).(painting) D.2]
+    Frame .(eqRestrReflFrameBelowInf) q p in mkDgnBisPrev .(reflPaintingBelow') p q 
+    (l ω).
+
+Definition mkReflLayerAbove {n' p q} {C: νType n'.+1} {G: DgnBis C}
+  {Hqp : q.+2 <= p.+2} {Hq: p.+2 <= n'.+2} 
+  {Frame : DgnBisFrameAboveBlock (mkνTypeSn C) p mkDgnBisPrev}
+  {D} {R: mk mkDgnPrefix D} 
+  {d: mkFramePrev .(frame') p D} (c: mkPaintingPrev .(painting') d) :
+  mkLayer (Frame .(reflFrameAbove) q c) :=
+  fun ω => rew <-[C.(Painting).(painting) D.2]
+    Frame .(eqRestrReflFrameAboveSup) q p in 
+      mkDgnBisPrev .(reflPaintingAbove') p q
+          (mkPaintingPrev .(restrPainting') p p ω c).
+
+Instance mkDgnBisFrameBelow0 {n'} {C: νType n'.+1} (G : DgnBis C) :
+  DgnBisFrameBelowBlock (mkνTypeSn C) 0 mkDgnBisPrev.
+Proof.
+  unshelve esplit.
+  + intros; exact tt.
+  + intros; apply rew_swap with (P := id); now destruct (rew <- _ in _).
+  + intros; apply rew_swap with (P := id); now destruct (rew <- _ in _).
+  + intros; apply rew_swap with (P := id); now destruct (rew <- _ in _).
+Defined.
+
+Definition my_admit {A} : A.
+Proof.
+  admit.
+Admitted.
+
+Instance mkDgnBisFrameBelowSp {n'} {C: νType n'.+1} (G : DgnBis C) p
+  (Prev : DgnBisFrameBelowBlock (mkνTypeSn C) p mkDgnBisPrev):
+  DgnBisFrameBelowBlock (mkνTypeSn C) p.+1 mkDgnBisPrev.
+Proof.
+  unshelve esplit.
+  + intros q Hpq Hq D R d.
+    rewrite (mkνTypeSn C) .(eqFrameSp') in d.
+    destruct d as [d l].
+    unshelve esplit.
+    - exact (Prev .(reflFrameBelow) q d).
+    - invert_le Hpq.
+      exact (mkReflLayerBelow (q := q) l).
+  + intros q ε Hpq Hq D R d. simpl.
+    rewrite <-rew_opp_l with (P := id) (H := C.(eqFrameSp)).
+    destruct (rew [id] _ in d) as (d', l); clear d.
+    invert_le Hpq.
+    f_equal.
+    unshelve refine (eq_existT_curried _ _).
+    - now rewrite (Prev .(eqRestrReflFrameBelowQ) (q.+1)).
+    - apply functional_extensionality_dep. intro ω.
+      rewrite <-map_subst_app.
+      unfold mkRestrLayer.
+      rewrite <-(map_subst_map 
+                  (Q := C .(PaintingPrev) .(painting'))
+                  (fun d => C .(Frame) .(restrFrame) q ε d)
+                  (fun d c => C .(Painting) .(restrPainting) p q c)).
+      rewrite <-(G .(DgnBisPaintingBelow) 
+        .(eqRestrReflPaintingBelowQ) q (ε := ε) (L := R.2) (l ω)).
+      exact my_admit.
+  + exact my_admit.
+  + exact my_admit.
+Defined.
+
+Instance mkDgnBisFrameBelow {n'} {C: νType n'.+1} (G : DgnBis C) p :
+  DgnBisFrameBelowBlock (mkνTypeSn C) p mkDgnBisPrev.
+Proof.
+  induction p.
+  - exact (mkDgnBisFrameBelow0 G).
+  - exact (mkDgnBisFrameBelowSp G p IHp).
+Defined.
+
+Instance mkDgnBisFrameAbove0 {n'} {C: νType n'.+1} (G : DgnBis C) :
+  DgnBisFrameAboveBlock (mkνTypeSn C) 0 mkDgnBisPrev.
+Proof.
+  unshelve esplit.
+  + intros q Hq Hp D R d c.
+    unshelve esplit.
+    - exact ((mkDgnBisFrameBelow0 G) .(reflFrameBelow) 0 d).
+    - intro ε.
+      rewrite ((mkDgnBisFrameBelow0 G)) .(eqRestrReflFrameBelowQ).
+      exact c.
+  + intros q r ε Hqp Hpr Hr D R d c.
+    invert_le Hqp.
+    unfold mkDgnBisPrev, reflFrameAbove'.
+    rewrite (mkνTypeSn C) .(eqRestrFrameSp).
+    rewrite eqReflFrameAbove0.
+    apply (f_equal (fun d => rew <- [id] C .(eqFrameSp) in d)).
+    unshelve refine (eq_existT_curried _ _).
+    - exact ((mkDgnBisFrameBelow0 G).(eqRestrReflFrameBelowSup) 0 r).
+    - exact my_admit. 
+Defined.
+
+Instance mkDgnBisFrameAboveSp {n'} {C: νType n'.+1} (G : DgnBis C) p 
+  (Prev : DgnBisFrameAboveBlock (mkνTypeSn C) p mkDgnBisPrev):
+  DgnBisFrameAboveBlock (mkνTypeSn C) p.+1 mkDgnBisPrev.
+Proof.
+  unshelve esplit.
+  + intros q Hqp Hp D R d c.
+    apply le_induction' with 
+      (Hp := Hqp)
+      (P := fun _ _ => (mkνTypeSn C) .(Frame) .(frame p.+2) D);
+    clear q Hqp.
+    - unshelve esplit.
+      * exact ((mkDgnBisFrameBelow G p.+1) .(reflFrameBelow) p.+1 d).
+      * intro ε.
+        rewrite ((mkDgnBisFrameBelow G p.+1)) .(eqRestrReflFrameBelowQ).
+        exact c.
+    - intros q Hqp rec. clear rec.
+      unshelve esplit.
+      * exact (Prev .(reflFrameAbove) q (extendPainting C p d c)).
+      * exact (mkReflLayerAbove (q := q) (extendPainting C p d c)).
+  + intros q r ε Hpq Hqr Hr D R d c.
+    exact my_admit.
+Defined.
+
+Instance mkDgnBisFrameAbove {n'} {C: νType n'.+1} (G : DgnBis C) p :
+  DgnBisFrameAboveBlock (mkνTypeSn C) p mkDgnBisPrev. 
+Proof.
+  induction p.
+  - exact (mkDgnBisFrameAbove0 G).
+  - exact (mkDgnBisFrameAboveSp G p IHp).
+Defined.
+
+Instance mkDgnBisPaintingAbove {n'} {C: νType n'.+1} (G : DgnBis C) p :
+  DgnBisPaintingAboveBlock (mkνTypeSn C) p (mkDgnBisFrameAbove G).
+Proof.
+  unshelve esplit.
+  + intros q Hqp Hp D E R L. revert Hqp.
+    apply le_induction' with (Hp := Hp); clear p Hp.
+    * intros Hqp d c.
+      rewrite (mkνTypeSn C) .(eqPainting0).
+      apply L.
+    * intros p Hp rec Hqp d c.
+      rewrite (mkνTypeSn C) .(eqPaintingSp).
+      unshelve esplit.
+      - exact (mkReflLayerAbove (q := q) (Hqp := ⇑ Hqp) c).
+      - refine (rew [(mkνTypeSn C) .(Painting) .(painting) E] _ in
+          rec (↓ ⇑ Hqp) _ (rew [id] (mkνTypeSn C) .(eqPaintingSp') in c).2).
+        simpl.
+        rewrite le_induction'_step_computes.
+        exact my_admit.
+Defined.
+
+Instance mkDgnBisPaintingBelow {n'} {C: νType n'.+1} (G : DgnBis C) p :
+  DgnBisPaintingBelowBlock (mkνTypeSn C) p 
+    (mkDgnBisFrameBelow G) (mkDgnBisFrameAbove G).
+Proof.
+  unshelve esplit.
+  + intros q Hpq Hq D E R L.
+    apply le_induction' with (Hp := Hpq); clear p Hpq.
+    * intros d c.
+      rewrite (mkνTypeSn C) .(eqPaintingSp).
+      unshelve esplit.
+      - intro ε.
+        rewrite ((mkDgnBisFrameBelow G q)) .(eqRestrReflFrameBelowQ).
+        exact c.
+      - refine (rew [(mkνTypeSn C) .(Painting) .(painting) E] 
+                _ in (mkDgnBisPaintingAbove G q).(reflPaintingAbove) q c).
+        destruct q.
+        exact eq_refl.
+        exact le_induction'_base_computes.
+    * intros p Hpq rec d c.
+      invert_le Hpq.
+      rewrite (mkνTypeSn C) .(eqPaintingSp).
+      rewrite (mkνTypeSn C) .(eqPaintingSp') in c.
+      destruct c as [l c'].
+      unshelve esplit.
+      - exact (mkReflLayerBelow (Frame := (mkDgnBisFrameBelow G p)) (q := q) l).
+      - pose (c'' := rec _ c'). 
+        simpl in c''. rewrite rew_opp_r in c''.
+        exact c''.
+  + exact my_admit.
+Defined.
+
 Class mkPermute T := intro_mkpermute : T -> Type@{m'}.
 
 Class PermuteBlockPrev {n'} (C: νType n'.+2) {permutePrefix: mkPermute C.(prefix)} := {
