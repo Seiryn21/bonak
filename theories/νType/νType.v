@@ -1520,6 +1520,15 @@ Class DgnBisPaintingAboveBlock {n'} (C: νType n'.+1) {reflPrefix: mkReflBis C.(
     {d : C.(FramePrev).(frame') p D}
     (c : C.(PaintingPrev).(painting') d) :
     C.(Painting).(painting) E (DgnBisFrameAbove .(reflFrameAbove) q c);
+
+  eqRestrReflPaintingAboveSup q r {ε} {Hpq : q.+2 <= p.+2} {Hqr : p.+2 <= r.+2} {Hr : r.+2 <= n'.+1} 
+    {D E} {R : mk reflPrefix D} {L : HasReflBis E} 
+    {d: C.(FramePrev).(frame') p D}
+    {c : C.(PaintingPrev).(painting') d} :
+    rew [C.(PaintingPrev).(painting')]
+      DgnBisFrameAbove .(eqRestrReflFrameAboveSup) q r in
+      C.(Painting).(restrPainting) p.+1 r.+1 (ε := ε) (reflPaintingAbove q c) =
+    ReflPrev .(reflPaintingAbove') p q (C .(PaintingPrev) .(restrPainting') p r ε c);
 }.
 
 Class DgnBisPaintingBelowBlock {n'} (C: νType n'.+1) {reflPrefix: mkReflBis C.(prefix)} p
@@ -1541,6 +1550,24 @@ Class DgnBisPaintingBelowBlock {n'} (C: νType n'.+1) {reflPrefix: mkReflBis C.(
       DgnBisFrameBelow .(eqRestrReflFrameBelowQ) q in
       C.(Painting).(restrPainting) p q (ε := ε) (reflPaintingBelow q c) = 
     c;
+  
+  eqRestrRefPaintingBelowInf q r {ε} {Hpr : p.+2 <= r.+2} {Hrq : r.+2 <= q.+2} {Hr : q.+2 <= n'.+1} 
+    {D E} {R: mk reflPrefix D} {L : HasReflBis E}
+    {d: C.(FramePrev).(frame') p D}
+    (c : C.(PaintingPrev).(painting') d) :
+    rew [C.(PaintingPrev).(painting')]
+      DgnBisFrameBelow .(eqRestrReflFrameBelowInf) q r in
+      C.(Painting).(restrPainting) p r (ε := ε) (reflPaintingBelow q.+1 c) =
+    ReflPrev .(reflPaintingBelow') p q (C .(PaintingPrev) .(restrPainting') p r ε c);
+  
+  eqRestrReflPaintingBelowSup q r {ε} {Hpq : p.+2 <= q.+2} {Hqr : q.+2 <= r.+2} {Hr : r.+2 <= n'.+1} 
+    {D E} {R: mk reflPrefix D} {L : HasReflBis E}
+    {d: C.(FramePrev).(frame') p D}
+    (c : C.(PaintingPrev).(painting') d) :
+    rew [C.(PaintingPrev).(painting')]
+      DgnBisFrameBelow .(eqRestrReflFrameBelowSup) q r in
+      C.(Painting).(restrPainting) p r.+1 (ε := ε) (reflPaintingBelow q c) =
+    ReflPrev .(reflPaintingBelow') p q (C .(PaintingPrev) .(restrPainting') p r ε c);
 }.
 
 Definition restrictFrame {n'} (C: νType n'.+1) p 
@@ -1590,21 +1617,24 @@ Proof.
   - intros; unshelve esplit.
     * simpl; intros; invert_le Hq; invert_le Hpq. now exact tt.
     * simpl; intros; invert_le Hq; invert_le Hpq; destruct d. now exact eq_refl.
-    * simpl; intros; le_contra Hr.
-    * simpl; intros; le_contra Hr.
+    * simpl; intros. le_contra Hr.
+    * simpl; intros. le_contra Hr.
   - intros; unshelve esplit.
     * simpl; intros; invert_le Hp; invert_le Hqp; destruct d. 
       exact (tt ; fun _ => c).
-    * simpl; intros; le_contra Hr.
+    * simpl; intros. le_contra Hr.
   - intros; unshelve esplit.
     * simpl; intros; invert_le Hq; invert_le Hpq; destruct d.
       rewrite mkPaintingType_step_computes. unshelve esplit. now trivial.
       rewrite mkPaintingType_base_computes. now exact (L tt c 0 _).
     * simpl; intros; invert_le Hq; invert_le Hpq; destruct d.
       now rewrite mkRestrPainting_base_computes, rew_rew'.
+    * simpl; intros. le_contra Hr.
+    * simpl; intros. le_contra Hr.
   - intros; unshelve esplit.
     * simpl; intros; invert_le Hp; invert_le Hqp. destruct d.
       rewrite mkPaintingType_base_computes. now exact (L tt c 0 _).
+    * simpl; intros. le_contra Hr.
   - intros. invert_le Hp. destruct d. reflexivity.
 Defined.
 
@@ -1654,6 +1684,8 @@ Proof.
   + intros; apply rew_swap with (P := id); now destruct (rew <- _ in _).
 Defined.
 
+(* this is used to be able to used Defined and unfold definition instead of
+Admitted which makes definitions opaque *)
 Definition my_admit {A} : A.
 Proof.
   admit.
@@ -1769,6 +1801,8 @@ Proof.
           rec (↓ ⇑ Hqp) _ (rew [id] (mkνTypeSn C) .(eqPaintingSp') in c).2).
         simpl.
         rewrite le_induction'_step_computes.
+        (* the equality is obviously true, but proving is annoying and
+        definitional equality would go a long way *)
         exact my_admit.
 Defined.
 
