@@ -1,4 +1,4 @@
-From Stdlib Require Import Logic.FunctionalExtensionality.
+From Stdlib Require Import Arith Logic.FunctionalExtensionality.
 
 Set Warnings "-notation-overridden".
 From Bonak Require Import SigT RewLemmas HSet Notation LeSProp.
@@ -651,8 +651,23 @@ CoInductive νSetFrom n (X: (νSetAt n).(prefix)): Type := cons {
   next: νSetFrom n.+1 (X; this);
 }.
 
+Arguments this {n} {X}.
+Arguments next {n} {X}.
+
 (** The final construction *)
 Definition νSets := νSetFrom 0 tt.
+
+Fixpoint X_aux (k : nat) 
+  (X: (νSetAt k).(prefix)) 
+  (C : νSetFrom k X) : 
+  nat -> HSet :=
+  fun n => match n with
+  | O => {frame : mkFrame (toDepsRestr ((νSetAt _).(data _) X).(restrFrames)) 
+        & C .(this) frame}
+  | S n => X_aux (k.+1) (X ; C .(this)) (C .(next)) n
+  end.
+
+Definition X_n (νSet : νSets) : nat -> HSet := X_aux _ _ νSet.
 
 End νSet.
 

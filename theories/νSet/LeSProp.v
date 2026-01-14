@@ -1,5 +1,5 @@
 Set Warnings "-notation-overridden".
-From Stdlib Require Import Logic.StrictProp.
+From Stdlib Require Import Arith Logic.StrictProp.
 From Bonak Require Import Notation.
 
 (** False and True in SProp *)
@@ -25,6 +25,12 @@ Qed.
 
 Lemma leR_O {n}: leR O n.
   now auto.
+Qed.
+
+Lemma leR_m {n} (m : nat) : leR m (m + n).
+  induction m.
+  + exact leR_O.
+  + exact (IHm).
 Qed.
 
 Lemma leR_trans {n m p} (Hnm: leR n m) (Hmp: leR m p): leR n p.
@@ -60,3 +66,34 @@ Qed.
 
 Notation "⇑ p" := (leR_raise_both p) (at level 40).
 Infix "<=" := leR: nat_scope.
+
+Definition leR_up_k {n m} (k : nat) (Hnm : leR n m): leR n (m + k).
+  induction k.
+  + now rewrite Nat.add_0_r.
+  + rewrite Nat.add_succ_r.
+    exact (leR_up IHk).
+Qed.
+
+Ltac le_contra Hq :=
+  exfalso; clear -Hq; repeat apply leR_lower_both in Hq;
+  now apply leR_O_contra in Hq.
+
+Ltac find_raise q :=
+  match q with
+  | ?q.+1 => find_raise q
+  | 0 => constr:(@None nat)
+  | _ => constr:(Some q)
+  end.
+
+Ltac invert_le Hpq :=
+  match type of Hpq with
+  | ?p.+1 <= ?q =>
+     match find_raise q with
+     | Some ?c => destruct c; [le_contra Hpq|]
+     | None =>
+       match find_raise p with
+       | Some ?c => destruct c; [|le_contra Hpq]
+       | None => le_contra Hpq
+       end
+     end
+  end.

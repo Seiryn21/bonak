@@ -1,52 +1,8 @@
 From Stdlib Require Import Arith Program.Equality.
-From Bonak Require Import νSet SigT HSet Notation LeSProp.
+From Bonak Require Import SigT HSet Notation LeSProp.
 
 Section Category.
 Variable arity : HSet.
-
-Definition add_succ_r (n m : nat) : n + m.+1 = (n + m).+1.
-Proof.
-  induction n.
-  + reflexivity.
-  + simpl. now rewrite IHn.
-Defined. 
-
-Ltac le_contra Hq :=
-  exfalso; clear -Hq; repeat apply leR_lower_both in Hq;
-  now apply leR_O_contra in Hq.
-
-Ltac find_raise q :=
-  match q with
-  | ?q.+1 => find_raise q
-  | 0 => constr:(@None nat)
-  | _ => constr:(Some q)
-  end.
-
-Ltac invert_le Hpq :=
-  match type of Hpq with
-  | ?p.+1 <= ?q =>
-     match find_raise q with
-     | Some ?c => destruct c; [le_contra Hpq|]
-     | None =>
-       match find_raise p with
-       | Some ?c => destruct c; [|le_contra Hpq]
-       | None => le_contra Hpq
-       end
-     end
-  end.
-
-Lemma leR_m {n} (m : nat) : leR m (m + n).
-  induction m.
-  + exact leR_O.
-  + exact (leR_raise_both IHm).
-Qed.
-
-Lemma leR_raise_k {n m} (k : nat) (Hnm : leR n m): leR n (m + k).
-  induction k.
-  + rewrite Nat.add_0_r. exact Hnm.
-  + rewrite Nat.add_succ_r. 
-    exact (leR_up IHk).
-Qed.
 
 Inductive Hom : nat -> nat -> Type := 
 | base : Hom 0 0
@@ -208,10 +164,10 @@ Proof.
   intros p n f X.
   destruct f.
   + exact X.
-  + rewrite add_succ_r in X|-*.
+  + rewrite Nat.add_succ_r in X|-*.
     exact (makeF1_aux k.+1 F0 F1 p n f X).
   + apply (F1 k (k + p) a (leR_m k)).
-    rewrite add_succ_r in X.
+    rewrite Nat.add_succ_r in X.
     exact (makeF1_aux k.+1 F0 F1 p n f X).
 Defined.
 
@@ -220,15 +176,15 @@ Definition makeF1_aux_ari (k : nat)
   (F1 : forall p n, arity -> p <= n -> F0 (n.+1) -> F0 n)
   (p n : nat) (a : arity) (f : Hom p n) (X : F0 (k + n.+1)) :
   makeF1_aux k F0 F1 p n.+1 (ari_cons a f) X =
-  F1 k (k + p) a (leR_m k) (makeF1_aux k.+1 F0 F1 p n f (rew [F0] add_succ_r _ _ in X)) := eq_refl.
+  F1 k (k + p) a (leR_m k) (makeF1_aux k.+1 F0 F1 p n f (rew [F0] Nat.add_succ_r _ _ in X)) := eq_refl.
 
 Definition makeF1_aux_nil (k : nat)
   (F0 : nat -> HSet)
   (F1 : forall p n, arity -> p <= n -> F0 (n.+1) -> F0 n)
   (p n : nat) (f : Hom p n) (X : F0 (k + n.+1)) :
   makeF1_aux k F0 F1 p.+1 n.+1 (nil_cons f) X =
-  rew <-[F0] add_succ_r _ _ in 
-    makeF1_aux k.+1 F0 F1 p n f (rew [F0] add_succ_r _ _ in X) := eq_refl.
+  rew <-[F0] Nat.add_succ_r _ _ in 
+    makeF1_aux k.+1 F0 F1 p n f (rew [F0] Nat.add_succ_r _ _ in X) := eq_refl.
 
 Lemma leR_rew {p q n : nat} (H : n = q) (Hp : p <= n) : p <= q.
 Proof.
@@ -254,8 +210,8 @@ Definition makeF1_aux_helper (k k' : nat) (Hk : k' <= k)
     F1 p n a (Hp ↕ Hq) (F1 q.+1 n.+1 a' Hq X) = 
     F1 q n a' Hq (F1 p n.+1 a (Hp ↕ ↑ Hq) X)) :
   forall (p n : nat) (a : arity) (f : Hom p n) (X : F0 (k.+1 + n)),
-  makeF1_aux k F0 F1 p n f (F1 k' (k + n) a (leR_raise_k n Hk) X) =
-  F1 k' (k + p) a (leR_raise_k p Hk) (makeF1_aux k.+1 F0 F1 p n f X).
+  makeF1_aux k F0 F1 p n f (F1 k' (k + n) a (leR_up_k n Hk) X) =
+  F1 k' (k + p) a (leR_up_k p Hk) (makeF1_aux k.+1 F0 F1 p n f X).
 Proof.
   intros p n a f X.
   revert k k' Hk X.
@@ -266,16 +222,16 @@ Proof.
     rewrite (IHf k.+1 k' (↑ Hk)).
     unfold eq_rect_r.
     rewrite (F1_subst F0 F1).
-    rewrite (UIP_nat _ _ _ (eq_sym (add_succ_r k.+1 p))).
-    now rewrite (UIP_nat _ _ _ (add_succ_r k.+1 n)).
+    rewrite (UIP_nat _ _ _ (eq_sym (Nat.add_succ_r k.+1 p))).
+    now rewrite (UIP_nat _ _ _ (Nat.add_succ_r k.+1 n)).
   + repeat rewrite makeF1_aux_ari.
     rewrite (F1_subst F0 F1).
     rewrite (IHf k.+1 k' (↑ Hk)).
     rewrite (F1_correct k' k (k + p) (⇑ Hk) _ a a0).
-    now rewrite (UIP_nat _ _ _ (add_succ_r k.+1 n)).
+    now rewrite (UIP_nat _ _ _ (Nat.add_succ_r k.+1 n)).
 Qed.
 
-Fixpoint makeF1_aux_correct (k : nat)
+Fixpoint makeF1_aux_compose (k : nat)
   (F0 : nat -> HSet)
   (F1 : forall p n, arity -> p <= n -> F0 (n.+1) -> F0 n)
   (F1_correct : forall p q n (Hp : p <= q) (Hq : q <= n)
@@ -293,17 +249,17 @@ Proof.
     - rewrite compose_nil_nil.
       repeat rewrite makeF1_aux_nil.
       rewrite rew_opp_r.
-      now rewrite (makeF1_aux_correct k.+1 F0 
+      now rewrite (makeF1_aux_compose k.+1 F0 
         F1 F1_correct _ _ _ g f _).
     - rewrite compose_nil_ari.
       repeat rewrite makeF1_aux_ari.
       rewrite makeF1_aux_nil.
       rewrite rew_opp_r.
-      now rewrite (makeF1_aux_correct k.+1 F0
+      now rewrite (makeF1_aux_compose k.+1 F0
         F1 F1_correct _ _ _ g f _).
   + rewrite compose_ari.
     repeat rewrite makeF1_aux_ari.
-    rewrite <-(makeF1_aux_correct k.+1 F0 
+    rewrite <-(makeF1_aux_compose k.+1 F0 
         F1 F1_correct p p0 n g f _).
     now rewrite (makeF1_aux_helper k k (leR_refl) F0 F1 F1_correct _ _ a f).
 Qed.
@@ -313,7 +269,7 @@ Definition makeF1
   (F1 : forall p n, arity -> p <= n -> F0 n.+1 -> F0 n) :
   forall p n, Hom p n -> F0 n -> F0 p := makeF1_aux 0 F0 F1.
 
-Definition makeF1_correct
+Definition makeF1_compose
   (F0 : nat -> HSet)
   (F1 : forall p n, arity -> p <= n -> F0 (n.+1) -> F0 n)
   (F1_correct : forall p q n (Hp : p <= q) (Hq : q <= n)
@@ -322,7 +278,7 @@ Definition makeF1_correct
     F1 q n a' Hq (F1 p n.+1 a (Hp ↕ ↑ Hq) X)) :
   forall (p q n : nat) (g : Hom q n) (f : Hom p q) (X : F0 n), 
     makeF1 F0 F1 _ _ f (makeF1 F0 F1 _ _ g X) = 
-    makeF1 F0 F1 _ _ (compose g f ) X := makeF1_aux_correct 0 F0 F1 F1_correct.
+    makeF1 F0 F1 _ _ (compose g f ) X := makeF1_aux_compose 0 F0 F1 F1_correct.
 
 Record Presheaf := {
   F0 : nat -> HSet;
