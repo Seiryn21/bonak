@@ -331,3 +331,5 @@ Record Presheaf := {
   F1_compose {n p q} {X : F0 n} (g : Hom q n) (f : Hom p q) : 
     F1 f (F1 g X) = F1 (compose g f) X; 
 }.
+
+End Category.
